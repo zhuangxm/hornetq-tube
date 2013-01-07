@@ -25,13 +25,14 @@
         (doto (.setReconnectAttempts -1))
         (.createSessionFactory))))
 
-(defprotocol SwitchBoard
+(defprotocol Tube
   (send-msg [this msg] [this msg address] "send msg to address")
   (receive-msg [this f address] [this f address uniq-queue-name]
     "receive message from address")
-  (close-switch [this] "close the switchboard"))
+  (close-tube [this] "close the tube"))
 
-(defn create-switch
+(defn create-tube
+  "create a tube using to communicate with hornetq server"
   [{:keys [host port send-address receive-queue]
     :or {host "localhost" port 5445} :as options}]
   (let [^ClientSessionFactory factory (netty-session-factory options)
@@ -46,7 +47,7 @@
                                           (:address m)) ))]
     (do (.start session)
         (.start (Thread.  fn-send) )
-        (reify SwitchBoard
+        (reify Tube
           (send-msg
             [this message]
             (send-msg this message send-address))
@@ -65,7 +66,7 @@
                   ^ClientConsumer consumer (msg/create-consumer session uniq-queue-name nil)]
               (.setMessageHandler consumer (msg/message-handler
                                             #(f (msg/read-message %))))))
-          (close-switch [this] (.close session))))))
+          (close-tube [this] (.close session))))))
 
 
 
