@@ -31,6 +31,13 @@
     "receive message from address")
   (close-tube [this] "close the tube"))
 
+(defn- send-message
+  [^ClientSession session ^ClientProducer producer m]
+  (let [^ClientMessage c-m (msg/create-message session false)]
+    (msg/send-message producer
+                      (msg/write-message c-m (:message m))
+                      (:address m))))
+
 (defn create-tube
   "create a tube using to communicate with hornetq server"
   [{:keys [host port send-address receive-queue]
@@ -39,12 +46,9 @@
         ^ClientSession session (msg/session factory nil nil nil)
         ^ClientProducer producer (msg/create-producer session)
         ^LinkedBlockingQueue q (LinkedBlockingQueue.)
-        fn-send (fn [] (let [m (.take q)
-                            c-m (msg/create-message session false)]
-                        (msg/send-message producer
-                                          (msg/write-message c-m
-                                                             (:message m))
-                                          (:address m)) ))]
+        fn-send (fn []
+                  (while true
+                    (send-message session producer (.take q)) ))]
     (do (.start session)
         (.start (Thread.  fn-send) )
         (reify Tube
@@ -52,10 +56,7 @@
             [this message]
             (send-msg this message send-address))
           (send-msg [this message address]
-            (let [^ClientMessage m (msg/create-message session false)]
-              (.put q {:message message :address address})
-              (msg/send-message producer
-                                (msg/write-message m message) address)))
+            (.put q {:message message :address address}))
           (receive-msg
             [this f address]
             (receive-msg this f address (uuid)))
