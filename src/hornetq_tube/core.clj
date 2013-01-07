@@ -1,5 +1,6 @@
 (ns hornetq-tube.core
-  (require [hornetq-clj.core-client :as msg])
+  (require [hornetq-clj.core-client :as msg]
+           [clojure.tools.logging :as log])
   (import
    [org.hornetq.api.core
     HornetQException SimpleString TransportConfiguration]
@@ -48,7 +49,10 @@
         ^LinkedBlockingQueue q (LinkedBlockingQueue.)
         fn-send (fn []
                   (while true
-                    (send-message session producer (.take q)) ))]
+                    (try 
+                      (send-message session producer (.take q))
+                      (catch Exception e
+                        (log/error "send messsage error", e)))))]
     (do (.start session)
         (.start (Thread.  fn-send) )
         (reify Tube
