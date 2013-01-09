@@ -66,12 +66,14 @@
             (receive-msg this f address (uuid)))
           (receive-msg
             [this f address uniq-queue-name]
-            (let [queue (msg/ensure-queue session uniq-queue-name
-                                          {:address address})
+            (let [queue (msg/ensure-temporary-queue session uniq-queue-name
+                                                    :address address)
                   ^ClientConsumer consumer (msg/create-consumer session uniq-queue-name nil)]
               (.setMessageHandler consumer (msg/message-handler
                                             #(f (msg/read-message %))))))
-          (close-tube [this] (.close session))))))
+          (close-tube [this]
+            (do (.close session)
+                (.close factory)))))))
 
 
 
