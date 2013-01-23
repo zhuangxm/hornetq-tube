@@ -5,4 +5,6 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [hornetq-clj/client "0.2.0"]
-                 [org.clojure/tools.logging "0.2.3"]])
+                 [hornetq-clj/server "0.2.0"]
+                 [org.clojure/tools.logging "0.2.3"]]
+  :dev-dependencies [[midje "1.4.0"]])

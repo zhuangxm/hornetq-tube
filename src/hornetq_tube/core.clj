@@ -1,5 +1,6 @@
 (ns hornetq-tube.core
   (require [hornetq-clj.core-client :as msg]
+           [hornetq-clj.server :as server]
            [clojure.tools.logging :as log])
   (import
    [org.hornetq.api.core
@@ -41,8 +42,8 @@
 
 (defn create-tube
   "create a tube using to communicate with hornetq server"
-  [{:keys [host port send-address receive-queue]
-    :or {host "localhost" port 5445} :as options}]
+  [& [{:keys [host port send-address receive-queue]
+        :or {host "localhost" port 5445} :as options}]]
   (let [^ClientSessionFactory factory (netty-session-factory options)
         ^ClientSession session (msg/session factory nil nil nil)
         ^ClientProducer producer (msg/create-producer session)
@@ -75,5 +76,22 @@
             (do (.close session)
                 (.close factory)))))))
 
+(defn create-tube-server
+  ([] (create-tube-server "127.0.0.1" 5445))
+  ([host] (create-tube-server host 5445))
+  ([host port]
+     (let [server  (server/make-server
+                    {:acceptors [{:factory-class-name
+                                  server/netty-acceptor-factory
+                                  :host host :port port}]
+                     :connectors [{:name "netty-connector"
+                                   :factory-class-name
+                                   server/netty-connector-factory}]})]
+       (do (.start server)
+           server))))
+
+(defn stop-tube-server
+  [server]
+  (.stop server))
 
 
